@@ -1,4 +1,4 @@
-from skiros2_skill.core.skill import SkillDescription, SkillBase, ParamOptions
+from skiros2_skill.core.skill import SkillDescription, SkillBase, ParamOptions, SerialStar
 from skiros2_common.core.params import ParamTypes
 from skiros2_common.core.world_element import Element
 
@@ -19,16 +19,18 @@ class Locate(SkillDescription):
         self.addPostCondition(self.getRelationCond("InContainer", "skiros:contain", "Container", "Object", True))
         self.addPostCondition(self.getHasPropCond("HasPosition", "skiros:Position", "Object", True))
 
+
 class Drive(SkillDescription):
     def createDescription(self):
-        #=======Params=========
+        # =======Params=========
         self.addParam("StartLocation", Element("skiros:Location"), ParamTypes.Inferred)
         self.addParam("TargetLocation", Element("skiros:Location"), ParamTypes.Required)
-        #=======PreConditions=========
+        # =======PreConditions=========
         self.addPreCondition(self.getRelationCond("RobotAt", "skiros:at", "Robot", "StartLocation", True))
-        #=======PostConditions=========
+        # =======PostConditions=========
         self.addPostCondition(self.getRelationCond("NoRobotAt", "skiros:at", "Robot", "StartLocation", False))
         self.addPostCondition(self.getRelationCond("RobotAt", "skiros:at", "Robot", "TargetLocation", True))
+
 
 class Pick(SkillDescription):
     def createDescription(self):
@@ -76,21 +78,21 @@ class locate_fake(SkillBase):
             self.skill("Wait", "wait", specify={"Duration": 1.0}),
         )
 
+
 class drive_fake(SkillBase):
     def createDescription(self):
         self.setDescription(Drive(), self.__class__.__name__)
 
-    def set_at(self, src, dst, state):
-      return self.skill("WmSetRelation", "wm_set_relation",
-          remap={'Dst': dst},
-          specify={'Src': self.params[src].value, 'Relation': 'skiros:at', 'RelationState': state})
-
     def expand(self, skill):
+        skill.setProcessor(SerialStar())
         skill(
             self.skill("Wait", "wait", specify={"Duration": 1.0}),
-            self.set_at("Robot", "StartLocation", False),
-            self.set_at("Robot", "TargetLocation", True),
+            self.skill("WmSetRelation", "wm_set_relation", remap={'Src': "Robot", 'Dst': "StartLocation", },
+                       specify={'Relation': 'skiros:at', 'RelationState': False}),
+            self.skill("WmSetRelation", "wm_set_relation", remap={'Src': "Robot", 'Dst': "TargetLocation"},
+                       specify={'Relation': 'skiros:at', 'RelationState': True})
         )
+
 
 class pick_fake(SkillBase):
     def createDescription(self):
