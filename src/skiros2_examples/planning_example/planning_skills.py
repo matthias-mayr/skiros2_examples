@@ -23,8 +23,10 @@ class Locate(SkillDescription):
 class Drive(SkillDescription):
     def createDescription(self):
         # =======Params=========
-        self.addParam("StartLocation", Element("skiros:Location"), ParamTypes.Inferred)
+        self.addParam("Robot", Element("cora:Robot"), ParamTypes.Required)
         self.addParam("TargetLocation", Element("skiros:Location"), ParamTypes.Required)
+        self.addParam("Velocity", 0.5, ParamTypes.Optional)
+        self.addParam("StartLocation", Element("skiros:Location"), ParamTypes.Inferred)
         # =======PreConditions=========
         self.addPreCondition(self.getRelationCond("RobotAt", "skiros:at", "Robot", "StartLocation", True))
         # =======PostConditions=========
@@ -87,6 +89,58 @@ class drive_fake(SkillBase):
         skill.setProcessor(SerialStar())
         skill(
             self.skill("Wait", "wait", specify={"Duration": 1.0}),
+            self.skill("WmSetRelation", "wm_set_relation", remap={'Src': "Robot", 'Dst': "StartLocation", },
+                       specify={'Relation': 'skiros:at', 'RelationState': False}),
+            self.skill("WmSetRelation", "wm_set_relation", remap={'Src': "Robot", 'Dst': "TargetLocation"},
+                       specify={'Relation': 'skiros:at', 'RelationState': True})
+        )
+
+
+class drive_platform(SkillBase):
+    def createDescription(self):
+        self.setDescription(Drive(), self.__class__.__name__)
+
+    def expand(self, skill):
+        skill.setProcessor(SerialStar())
+        skill(
+            self.skill("MovePlatform", "", specify={"Velocity": self.params["Velocity"].values}),
+            self.skill("WmSetRelation", "wm_set_relation", remap={'Src': "Robot", 'Dst': "StartLocation", },
+                       specify={'Relation': 'skiros:at', 'RelationState': False}),
+            self.skill("WmSetRelation", "wm_set_relation", remap={'Src': "Robot", 'Dst': "TargetLocation"},
+                       specify={'Relation': 'skiros:at', 'RelationState': True})
+        )
+
+
+class drive_platform(SkillBase):
+    def createDescription(self):
+        self.setDescription(Drive(), self.__class__.__name__)
+
+    def expand(self, skill):
+        skill.setProcessor(SerialStar())
+        skill(
+            self.skill(SelectorStar())(
+                self.skill("MovePlatformDirect", "", specify={"Velocity": self.params["Velocity"].values}),
+                self.skill("MovePlatformPlanning", "", specify={"Velocity": self.params["Velocity"].values}),
+            ),
+            self.skill("WmSetRelation", "wm_set_relation", remap={'Src': "Robot", 'Dst': "StartLocation", },
+                       specify={'Relation': 'skiros:at', 'RelationState': False}),
+            self.skill("WmSetRelation", "wm_set_relation", remap={'Src': "Robot", 'Dst': "TargetLocation"},
+                       specify={'Relation': 'skiros:at', 'RelationState': True})
+        )
+
+
+class drive_platform(SkillBase):
+    def createDescription(self):
+        self.setDescription(Drive(), self.__class__.__name__)
+
+    def expand(self, skill):
+        skill.setProcessor(SerialStar())
+        skill(
+            self.skill(SelectorStar())(
+                self.skill("MovePlatformDirect", "", specify={"Velocity": self.params["Velocity"].values}),
+                self.skill("MovePlatformPlanning", "", specify={"Velocity": self.params["Velocity"].values}),
+            ),
+            self.skill("VerifyPlatformArrival", ""),
             self.skill("WmSetRelation", "wm_set_relation", remap={'Src': "Robot", 'Dst': "StartLocation", },
                        specify={'Relation': 'skiros:at', 'RelationState': False}),
             self.skill("WmSetRelation", "wm_set_relation", remap={'Src': "Robot", 'Dst': "TargetLocation"},
